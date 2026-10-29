@@ -1,44 +1,35 @@
-# alati-project
+# WaveletChord
 
-FIXME: description
+A Clojure project for audio signal processing and musical key estimation.
 
-## Installation
+## Current Features
 
-Download from https://example.com/FIXME.
+- Signal normalization
+- Mean absolute amplitude calculation
+- RMS amplitude calculation
+
+## Requirements
+
+- Java JDK
+- Leiningen
 
 ## Usage
 
-FIXME: explanation
+Run the application from the project root directory:
 
-    $ java -jar alati-project-0.1.0-standalone.jar [args]
+```bash
+lein run
+```
 
-## Options
+The application currently uses a small sample signal to demonstrate basic signal processing operations.
 
-FIXME: listing of options this app accepts.
 
-## Examples
+## Research Goals
 
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+The long-term goal is to investigate time-frequency representations and chroma feature extraction methods for musical key estimation, comparing the proposed approach with established methods such as STFT and CQT.
 
 ## License
 
-Copyright © 2026 FIXME
+This project uses the Eclipse Public License 2.0, as configured by the original Leiningen project template.
 
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-https://www.eclipse.org/legal/epl-2.0.
-
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+For details, see https://www.eclipse.org/legal/epl-2.0/.

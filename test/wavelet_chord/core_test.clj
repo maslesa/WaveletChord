@@ -1,6 +1,6 @@
-(ns alati-project.core-test
+(ns wavelet-chord.core-test
   (:require [clojure.test :refer :all]
-            [alati-project.core :refer :all]))
+            [wavelet-chord.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

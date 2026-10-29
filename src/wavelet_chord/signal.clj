@@ -1,4 +1,4 @@
-(ns alati-project.signal)
+(ns wavelet-chord.signal)
 
 (defn normalize-signal [samples]
   (let [peak (apply max (map #(Math/abs (double %)) samples))]

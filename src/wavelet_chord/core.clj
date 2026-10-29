@@ -1,5 +1,5 @@
-(ns alati-project.core
-  (:require [alati-project.signal :as signal]))
+(ns wavelet-chord.core
+  (:require [wavelet-chord.signal :as signal]))
 
 (defn -main [& _args]
   (let [samples [0.2 -0.4 0.6 -0.1 0.3]
