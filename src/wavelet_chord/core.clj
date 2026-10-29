@@ -2,9 +2,9 @@
   (:require [wavelet-chord.signal :as signal]))
 
 (defn -main [& _args]
-  (let [samples [0.2 -0.4 0.6 -0.1 0.3]
-        normalized (signal/normalize-signal samples)]
-    (println "Original signal:" samples)
-    (println "Normalized signal:" normalized)
-    (println "Mean amplitude:" (signal/mean-amplitude samples))
-    (println "RMS amplitude:" (signal/rms-amplitude samples))))
+  (let [audio (signal/load-audio "Tri_Poljupca_Za_Srecu.wav")]
+    (println "Sample rate:" (:sample-rate audio))
+    (println "Channels:" (:channels audio))
+    (println "Duration:" (:duration-seconds audio) "seconds")
+    (println "First 10 samples:"
+             (take 10 (:samples audio)))))
