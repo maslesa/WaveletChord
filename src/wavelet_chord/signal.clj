@@ -54,7 +54,7 @@
   (let [peak (apply max (map #(Math/abs (double %)) samples))]
     (if (zero? peak)
       (vec samples)
-      (mapv #(/ (double %) peak) samples))))
+      (mapv #(/ (double %) (double peak)) samples))))
 
 (defn mean-amplitude [samples]
   (if (empty? samples)
