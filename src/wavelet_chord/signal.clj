@@ -86,3 +86,24 @@
     (mapv (fn [start]
             (subvec samples start (+ start frame-size)))
           frame-starts)))
+
+(defn hann-window [frame-size]
+  (when-not (> frame-size 1)
+    (throw (ex-info "Frame size must be greater than 1"
+                    {:frame-size frame-size})))
+
+  (mapv (fn [n]
+          (* 0.5
+             (- 1.0
+                (Math/cos
+                  (/ (* 2.0 Math/PI n)
+                     (dec frame-size))))))
+        (range frame-size)))
+
+(defn apply-window [frame window]
+  (when-not (= (count frame) (count window))
+    (throw (ex-info "Frame and window must have the same size"
+                    {:frame-size (count frame)
+                     :window-size (count window)})))
+
+  (mapv * frame window))

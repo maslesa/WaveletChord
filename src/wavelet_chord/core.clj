@@ -7,7 +7,10 @@
         normalized (signal/normalize-signal samples)
         frame-size 2048
         hop-size 512
-        frames (signal/split-into-frames normalized frame-size hop-size)]
+        frames (signal/split-into-frames normalized frame-size hop-size)
+        window (signal/hann-window frame-size)
+        first-frame (first frames)
+        windowed-frame (signal/apply-window first-frame window)]
 
     (println "\n--- Audio Information ---")
     (println "Sample rate:" (:sample-rate audio) "Hz")
@@ -23,4 +26,15 @@
     (println "Frame size:" frame-size)
     (println "Hop size:" hop-size)
     (println "Number of frames:" (count frames))
-    (println "First frame samples:" (take 10 (first frames)))))
+
+    (println "\n--- Hann Window ---")
+    (println "Window size:" (count window))
+    (println "First 10 coefficients:" (take 10 window))
+    (println "First coefficient:" (first window))
+    (println "Middle coefficient:" (nth window (quot frame-size 2)))
+    (println "Last coefficient:" (last window))
+
+    (println "\n--- Windowed Frame ---")
+    (println "First 10 samples:" (take 10 windowed-frame))
+    (println "Original frame RMS:" (signal/rms-amplitude first-frame))
+    (println "Windowed frame RMS:" (signal/rms-amplitude windowed-frame))))
