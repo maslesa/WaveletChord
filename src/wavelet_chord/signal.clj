@@ -70,3 +70,19 @@
                            (* x x))
                         samples))
          (count samples)))))
+
+(defn split-into-frames [samples frame-size hop-size]
+  (when (or (not (pos? frame-size))
+            (not (pos? hop-size)))
+    (throw (ex-info "Frame size and hop size must be positive"
+                    {:frame-size frame-size
+                     :hop-size hop-size})))
+
+  (let [samples (vec samples)
+        sample-count (count samples)
+        frame-starts (range 0
+                            (inc (- sample-count frame-size))
+                            hop-size)]
+    (mapv (fn [start]
+            (subvec samples start (+ start frame-size)))
+          frame-starts)))

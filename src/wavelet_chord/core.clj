@@ -4,7 +4,10 @@
 (defn -main [& _args]
   (let [audio (signal/load-audio "Tri_Poljupca_Za_Srecu.wav")
         samples (:samples audio)
-        normalized (signal/normalize-signal samples)]
+        normalized (signal/normalize-signal samples)
+        frame-size 2048
+        hop-size 512
+        frames (signal/split-into-frames normalized frame-size hop-size)]
 
     (println "\n--- Audio Information ---")
     (println "Sample rate:" (:sample-rate audio) "Hz")
@@ -16,6 +19,8 @@
     (println "Mean amplitude:" (signal/mean-amplitude samples))
     (println "RMS amplitude:" (signal/rms-amplitude samples))
 
-    (println "\n--- Normalized Signal ---")
-    (println "First 10 samples:" (take 10 normalized))
-    (println "Normalized RMS:" (signal/rms-amplitude normalized))))
+    (println "\n--- Framing ---")
+    (println "Frame size:" frame-size)
+    (println "Hop size:" hop-size)
+    (println "Number of frames:" (count frames))
+    (println "First frame samples:" (take 10 (first frames)))))
