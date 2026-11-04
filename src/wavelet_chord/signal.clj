@@ -128,3 +128,18 @@
               (Math/sqrt (+ (* real real)
                             (* imaginary imaginary)))))
           (range (inc (quot frame-size 2))))))
+
+(defn frequency-for-bin [bin sample-rate fft-size]
+  (/ (* bin sample-rate) fft-size))
+
+
+(defn stft [frames sample-rate hop-size window]
+  (mapv
+    (fn [index frame]
+      (let [windowed-frame (apply-window frame window)
+            magnitudes (fft-magnitudes windowed-frame)]
+        {:frame-index index
+         :time-seconds (/ (* index hop-size) sample-rate)
+         :magnitudes magnitudes}))
+    (range)
+    frames))
