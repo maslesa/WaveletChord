@@ -9,8 +9,11 @@
         hop-size 512
         frames (signal/split-into-frames normalized frame-size hop-size)
         window (signal/hann-window frame-size)
-        first-frame (first frames)
-        windowed-frame (signal/apply-window first-frame window)]
+        spectrogram (signal/stft frames
+                                 (:sample-rate audio)
+                                 hop-size
+                                 window)
+        first-spectrum (:magnitudes (first spectrogram))]
 
     (println "\n--- Audio Information ---")
     (println "Sample rate:" (:sample-rate audio) "Hz")
@@ -29,12 +32,21 @@
 
     (println "\n--- Hann Window ---")
     (println "Window size:" (count window))
-    (println "First 10 coefficients:" (take 10 window))
     (println "First coefficient:" (first window))
     (println "Middle coefficient:" (nth window (quot frame-size 2)))
     (println "Last coefficient:" (last window))
 
-    (println "\n--- Windowed Frame ---")
-    (println "First 10 samples:" (take 10 windowed-frame))
-    (println "Original frame RMS:" (signal/rms-amplitude first-frame))
-    (println "Windowed frame RMS:" (signal/rms-amplitude windowed-frame))))
+    (println "\n--- STFT ---")
+    (println "Number of spectra:" (count spectrogram))
+    (println "Frequency bins per spectrum:" (count first-spectrum))
+    (println "Frequency resolution:"
+             (signal/frequency-for-bin 1
+                                       (:sample-rate audio)
+                                       frame-size)
+             "Hz")
+
+    (println "\n--- First Spectrum ---")
+    (println "Frame index:" (:frame-index (first spectrogram)))
+    (println "Time:" (:time-seconds (first spectrogram)) "seconds")
+    (println "First 10 magnitudes:"
+             (take 10 first-spectrum))))

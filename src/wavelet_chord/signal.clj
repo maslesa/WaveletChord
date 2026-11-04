@@ -1,7 +1,8 @@
 (ns wavelet-chord.signal
   (:require [clojure.java.io :as io])
   (:import [javax.sound.sampled AudioSystem AudioFormat$Encoding AudioFormat]
-           [java.io ByteArrayOutputStream]))
+           [java.io ByteArrayOutputStream]
+           [org.jtransforms.fft DoubleFFT_1D]))
 
 (defn load-audio [filename]
   (let [file (io/file "resources" "audio" filename)]
@@ -107,3 +108,38 @@
                      :window-size (count window)})))
 
   (mapv * frame window))
+
+(defn fft-magnitudes [frame]
+  (let [frame-size (count frame)
+        fft (DoubleFFT_1D. (long frame-size))
+        data (double-array (* 2 frame-size))]
+
+    (when (zero? frame-size)
+      (throw (ex-info "Frame cannot be empty" {})))
+
+    (doseq [i (range frame-size)]
+      (aset-double data (* 2 i) (double (nth frame i))))
+
+    (.complexForward fft data)
+
+    (mapv (fn [i]
+            (let [real (aget data (* 2 i))
+                  imaginary (aget data (inc (* 2 i)))]
+              (Math/sqrt (+ (* real real)
+                            (* imaginary imaginary)))))
+          (range (inc (quot frame-size 2))))))
+
+(defn frequency-for-bin [bin sample-rate fft-size]
+  (/ (* bin sample-rate) fft-size))
+
+
+(defn stft [frames sample-rate hop-size window]
+  (mapv
+    (fn [index frame]
+      (let [windowed-frame (apply-window frame window)
+            magnitudes (fft-magnitudes windowed-frame)]
+        {:frame-index index
+         :time-seconds (/ (* index hop-size) sample-rate)
+         :magnitudes magnitudes}))
+    (range)
+    frames))
