@@ -85,3 +85,31 @@
          :time-seconds (:time-seconds spectrum)
          :values (normalize-chroma chroma)}))
     cqt-result))
+
+(defn average-chroma
+  "Calculates the average chroma profile across all frames."
+  [chroma-frames]
+  (if (empty? chroma-frames)
+    (create-empty-chroma)
+    (let [sum
+          (reduce
+            (fn [result frame]
+              (mapv + result (:values frame)))
+            (create-empty-chroma)
+            chroma-frames)
+
+          frame-count (count chroma-frames)]
+
+      (normalize-chroma
+        (mapv #(/ % frame-count) sum)))))
+
+(defn rank-pitch-classes
+  "Returns pitch classes sorted by their chroma strength."
+  [chroma]
+  (->> (map-indexed
+         (fn [index value]
+           {:pitch-class (nth pitch-classes index)
+            :value value})
+         chroma)
+       (sort-by :value >)
+       vec))
