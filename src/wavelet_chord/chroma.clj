@@ -38,3 +38,50 @@
   (if-let [pitch-class (frequency-to-pitch-class frequency)]
     (update chroma pitch-class + (double magnitude))
     chroma))
+
+(defn stft-chroma
+  "Extracts chroma vectors from STFT spectra."
+  [spectrogram sample-rate fft-size min-frequency max-frequency]
+  (mapv
+    (fn [spectrum]
+      (let [magnitudes (:magnitudes spectrum)
+            chroma
+            (reduce
+              (fn [result bin]
+                (let [frequency
+                      (/ (* bin sample-rate) fft-size)]
+                  (if (<= min-frequency frequency max-frequency)
+                    (add-to-chroma
+                      result
+                      frequency
+                      (nth magnitudes bin))
+                    result)))
+              (create-empty-chroma)
+              (range (count magnitudes)))]
+
+        {:frame-index (:frame-index spectrum)
+         :time-seconds (:time-seconds spectrum)
+         :values (normalize-chroma chroma)}))
+    spectrogram))
+
+(defn cqt-chroma
+  "Extracts chroma vectors from CQT spectra."
+  [cqt-result]
+  (mapv
+    (fn [spectrum]
+      (let [frequencies (:frequencies spectrum)
+            magnitudes (:magnitudes spectrum)
+            chroma
+            (reduce
+              (fn [result bin]
+                (add-to-chroma
+                  result
+                  (nth frequencies bin)
+                  (nth magnitudes bin)))
+              (create-empty-chroma)
+              (range (count frequencies)))]
+
+        {:frame-index (:frame-index spectrum)
+         :time-seconds (:time-seconds spectrum)
+         :values (normalize-chroma chroma)}))
+    cqt-result))
