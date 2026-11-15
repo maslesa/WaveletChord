@@ -1,9 +1,9 @@
-
 (ns wavelet-chord.core
   (:require [wavelet-chord.signal :as signal]
             [wavelet-chord.cqt :as cqt]
             [wavelet-chord.chroma :as chroma]
-            [wavelet-chord.key-estimation :as key-estimation]))
+            [wavelet-chord.key-estimation :as key-estimation]
+            [wavelet-chord.evaluation :as evaluation]))
 
 (defn print-chroma-profile [title profile]
   (println title)
@@ -24,7 +24,7 @@
                          (:correlation candidate)))))
     (println "Could not estimate key.")))
 
-(defn -main [& _args]
+(defn run-single-track []
   (let [audio (signal/load-audio "Tri_Poljupca_Za_Srecu.wav")
         samples (:samples audio)
         normalized (signal/normalize-signal samples)
@@ -34,20 +34,24 @@
         segment-samples (take sample-count normalized)
         frame-size 8192
         hop-size 2048
-        frames (signal/split-into-frames segment-samples frame-size hop-size)
+        frames (signal/split-into-frames
+                 segment-samples frame-size hop-size)
         window (signal/hann-window frame-size)
         spectrogram (signal/stft frames sample-rate hop-size window)
         fmin 130.8128
         bins-per-octave 12
         number-of-bins 48
-        max-frequency (* fmin
-                         (Math/pow 2.0
-                                   (/ (dec number-of-bins)
-                                      bins-per-octave)))
-        cqt-result (cqt/cqt frames sample-rate hop-size frame-size
-                            fmin bins-per-octave number-of-bins)
-        stft-chroma (chroma/stft-chroma spectrogram sample-rate
-                                        frame-size fmin max-frequency)
+        max-frequency
+        (* fmin
+           (Math/pow 2.0
+                     (/ (dec number-of-bins)
+                        bins-per-octave)))
+        cqt-result (cqt/cqt
+                     frames sample-rate hop-size frame-size
+                     fmin bins-per-octave number-of-bins)
+        stft-chroma (chroma/stft-chroma
+                      spectrogram sample-rate frame-size
+                      fmin max-frequency)
         cqt-chroma (chroma/cqt-chroma cqt-result)
         average-stft-chroma (chroma/average-chroma stft-chroma)
         average-cqt-chroma (chroma/average-chroma cqt-chroma)
@@ -106,5 +110,10 @@
     (print-key-estimation "STFT key estimation:" stft-key)
     (print-key-estimation "CQT key estimation:" cqt-key)
 
-    (println "\nKey estimation completed.")
-    (shutdown-agents)))
+    (println "\nKey estimation completed.")))
+
+(defn -main [& args]
+  (if (= "--evaluate" (first args))
+    (evaluation/run-evaluation)
+    (run-single-track))
+  (shutdown-agents))
