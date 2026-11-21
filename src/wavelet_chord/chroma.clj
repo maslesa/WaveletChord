@@ -58,7 +58,6 @@
                     result)))
               (create-empty-chroma)
               (range (count magnitudes)))]
-
         {:frame-index (:frame-index spectrum)
          :time-seconds (:time-seconds spectrum)
          :values (normalize-chroma chroma)}))
@@ -80,11 +79,31 @@
                   (nth magnitudes bin)))
               (create-empty-chroma)
               (range (count frequencies)))]
-
         {:frame-index (:frame-index spectrum)
          :time-seconds (:time-seconds spectrum)
          :values (normalize-chroma chroma)}))
     cqt-result))
+
+(defn wavelet-chroma
+  "Extracts chroma vectors from wavelet transform coefficients."
+  [wavelet-result]
+  (mapv
+    (fn [spectrum]
+      (let [frequencies (:frequencies spectrum)
+            magnitudes (:magnitudes spectrum)
+            chroma
+            (reduce
+              (fn [result bin]
+                (add-to-chroma
+                  result
+                  (nth frequencies bin)
+                  (nth magnitudes bin)))
+              (create-empty-chroma)
+              (range (count frequencies)))]
+        {:frame-index (:frame-index spectrum)
+         :time-seconds (:time-seconds spectrum)
+         :values (normalize-chroma chroma)}))
+    wavelet-result))
 
 (defn average-chroma
   "Calculates the average chroma profile across all frames."
@@ -99,7 +118,6 @@
             chroma-frames)
 
           frame-count (count chroma-frames)]
-
       (normalize-chroma
         (mapv #(/ % frame-count) sum)))))
 
