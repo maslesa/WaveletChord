@@ -3,6 +3,7 @@
             [clojure.string :as str]
             [wavelet-chord.signal :as signal]
             [wavelet-chord.cqt :as cqt]
+            [wavelet-chord.wavelet :as wavelet]
             [wavelet-chord.chroma :as chroma]
             [wavelet-chord.key-estimation :as key-estimation]))
 
@@ -88,22 +89,35 @@
           cqt-spectrogram (cqt/cqt
                             frames sample-rate hop-size frame-size
                             fmin bins-per-octave number-of-bins)
+          wavelet-spectrogram (wavelet/wavelet-transform
+                                frames sample-rate hop-size frame-size
+                                fmin bins-per-octave number-of-bins)
+
           stft-frames (chroma/stft-chroma
                         spectrogram sample-rate frame-size
                         fmin max-frequency)
           cqt-frames (chroma/cqt-chroma cqt-spectrogram)
+          wavelet-frames (chroma/wavelet-chroma wavelet-spectrogram)
+
           stft-profile (chroma/average-chroma stft-frames)
           cqt-profile (chroma/average-chroma cqt-frames)
+          wavelet-profile (chroma/average-chroma wavelet-frames)
+
           stft-result (key-estimation/estimate-key stft-profile)
-          cqt-result (key-estimation/estimate-key cqt-profile)]
+          cqt-result (key-estimation/estimate-key cqt-profile)
+          wavelet-result (key-estimation/estimate-key wavelet-profile)]
+
       {:filename filename
        :duration-seconds (:duration-seconds audio)
+
        :stft-key (:key stft-result)
        :stft-correlation (:correlation stft-result)
+
        :cqt-key (:key cqt-result)
        :cqt-correlation (:correlation cqt-result)
-       :stft-frames (count stft-frames)
-       :cqt-frames (count cqt-frames)})))
+
+       :wavelet-key (:key wavelet-result)
+       :wavelet-correlation (:correlation wavelet-result)})))
 
 (defn key-root [key]
   (first (str/split key #" ")))
@@ -112,18 +126,25 @@
   (second (str/split key #" ")))
 
 (defn evaluate-result
-  [{:keys [actual-key stft-key cqt-key] :as result}]
+  [{:keys [actual-key stft-key cqt-key wavelet-key] :as result}]
   (assoc result
     :stft-correct? (= actual-key stft-key)
     :cqt-correct? (= actual-key cqt-key)
+    :wavelet-correct? (= actual-key wavelet-key)
+
     :stft-root-correct? (= (key-root actual-key)
                            (some-> stft-key key-root))
     :cqt-root-correct? (= (key-root actual-key)
                           (some-> cqt-key key-root))
+    :wavelet-root-correct? (= (key-root actual-key)
+                              (some-> wavelet-key key-root))
+
     :stft-mode-correct? (= (key-mode actual-key)
                            (some-> stft-key key-mode))
     :cqt-mode-correct? (= (key-mode actual-key)
-                          (some-> cqt-key key-mode))))
+                          (some-> cqt-key key-mode))
+    :wavelet-mode-correct? (= (key-mode actual-key)
+                              (some-> wavelet-key key-mode))))
 
 (defn calculate-accuracy [results field]
   (if (seq results)
@@ -139,21 +160,24 @@
 
      :stft-key-accuracy
      (calculate-accuracy results :stft-correct?)
-
      :cqt-key-accuracy
      (calculate-accuracy results :cqt-correct?)
+     :wavelet-key-accuracy
+     (calculate-accuracy results :wavelet-correct?)
 
      :stft-root-accuracy
      (calculate-accuracy results :stft-root-correct?)
-
      :cqt-root-accuracy
      (calculate-accuracy results :cqt-root-correct?)
+     :wavelet-root-accuracy
+     (calculate-accuracy results :wavelet-root-correct?)
 
      :stft-mode-accuracy
      (calculate-accuracy results :stft-mode-correct?)
-
      :cqt-mode-accuracy
-     (calculate-accuracy results :cqt-mode-correct?)}))
+     (calculate-accuracy results :cqt-mode-correct?)
+     :wavelet-mode-accuracy
+     (calculate-accuracy results :wavelet-mode-correct?)}))
 
 (defn evaluate-dataset [dataset]
   (mapv
@@ -170,6 +194,7 @@
              :actual-key actual-key
              :stft-key nil
              :cqt-key nil
+             :wavelet-key nil
              :error (.getMessage exception)}))))
     dataset))
 
@@ -180,28 +205,25 @@
   (println "Failed:" (:failed metrics))
 
   (println "\nKey accuracy:")
-  (println "STFT:"
-           (format "%.2f%%"
-                   (* 100 (:stft-key-accuracy metrics))))
-  (println "CQT:"
-           (format "%.2f%%"
-                   (* 100 (:cqt-key-accuracy metrics))))
+  (doseq [[name field] [["STFT" :stft-key-accuracy]
+                        ["CQT" :cqt-key-accuracy]
+                        ["WCT" :wavelet-key-accuracy]]]
+    (println name
+             (format "%.2f%%" (* 100 (get metrics field)))))
 
   (println "\nRoot accuracy:")
-  (println "STFT:"
-           (format "%.2f%%"
-                   (* 100 (:stft-root-accuracy metrics))))
-  (println "CQT:"
-           (format "%.2f%%"
-                   (* 100 (:cqt-root-accuracy metrics))))
+  (doseq [[name field] [["STFT" :stft-root-accuracy]
+                        ["CQT" :cqt-root-accuracy]
+                        ["WCT" :wavelet-root-accuracy]]]
+    (println name
+             (format "%.2f%%" (* 100 (get metrics field)))))
 
   (println "\nMode accuracy:")
-  (println "STFT:"
-           (format "%.2f%%"
-                   (* 100 (:stft-mode-accuracy metrics))))
-  (println "CQT:"
-           (format "%.2f%%"
-                   (* 100 (:cqt-mode-accuracy metrics)))))
+  (doseq [[name field] [["STFT" :stft-mode-accuracy]
+                        ["CQT" :cqt-mode-accuracy]
+                        ["WCT" :wavelet-mode-accuracy]]]
+    (println name
+             (format "%.2f%%" (* 100 (get metrics field))))))
 
 (defn csv-value [value]
   (let [value (str (or value ""))]
@@ -210,27 +232,28 @@
          "\"")))
 
 (defn write-results [results]
-  (let [header ["filename" "actual_key"
-                "stft_key" "cqt_key"
-                "stft_correct" "cqt_correct"
-                "stft_root_correct" "cqt_root_correct"
-                "stft_mode_correct" "cqt_mode_correct"
-                "stft_correlation" "cqt_correlation"
-                "duration_seconds" "error"]
+  (let [header
+        ["filename" "actual_key"
+         "stft_key" "cqt_key" "wavelet_key"
+         "stft_correct" "cqt_correct" "wavelet_correct"
+         "stft_root_correct" "cqt_root_correct" "wavelet_root_correct"
+         "stft_mode_correct" "cqt_mode_correct" "wavelet_mode_correct"
+         "stft_correlation" "cqt_correlation" "wavelet_correlation"
+         "duration_seconds" "error"]
+
         rows
         (map
           (fn [result]
             (map result
                  [:filename :actual-key
-                  :stft-key :cqt-key
-                  :stft-correct? :cqt-correct?
-                  :stft-root-correct? :cqt-root-correct?
-                  :stft-mode-correct? :cqt-mode-correct?
-                  :stft-correlation :cqt-correlation
+                  :stft-key :cqt-key :wavelet-key
+                  :stft-correct? :cqt-correct? :wavelet-correct?
+                  :stft-root-correct? :cqt-root-correct? :wavelet-root-correct?
+                  :stft-mode-correct? :cqt-mode-correct? :wavelet-mode-correct?
+                  :stft-correlation :cqt-correlation :wavelet-correlation
                   :duration-seconds :error]))
-          results)
-        csv-lines
-        (cons header rows)]
+          results)]
+
     (io/make-parents results-path)
     (spit results-path
           (str
@@ -239,7 +262,7 @@
               (map
                 (fn [row]
                   (str/join "," (map csv-value row)))
-                csv-lines))
+                (cons header rows)))
             "\n"))
     (println "\nResults saved to:" results-path)))
 
@@ -258,11 +281,13 @@
           metrics (calculate-metrics results)]
       (doseq [result results]
         (println
-          (format "%-30s | Actual: %-10s | STFT: %-10s | CQT: %-10s"
-                  (:filename result)
-                  (:actual-key result)
-                  (or (:stft-key result) "N/A")
-                  (or (:cqt-key result) "N/A"))))
+          (format
+            "%-30s | Actual: %-10s | STFT: %-10s | CQT: %-10s | WCT: %-10s"
+            (:filename result)
+            (:actual-key result)
+            (or (:stft-key result) "N/A")
+            (or (:cqt-key result) "N/A")
+            (or (:wavelet-key result) "N/A"))))
 
       (print-metrics metrics)
       (write-results results)
